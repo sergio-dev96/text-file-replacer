@@ -5,8 +5,102 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:DotNetStringRepacker"
         mc:Ignorable="d"
-        Title="MainWindow" Height="350" Width="525">
-    <Grid>
-        
-    </Grid>
+        Title="DotNet String Repacker" Height="500" Width="700" MinHeight="350" MinWidth="500" Closed="Window_Closed">
+    <TabControl>
+        <TabItem x:Name="MainTab" Padding="0" >
+            <TabItem.Header>
+                <TextBlock Padding="5,0" Margin="0">Main</TextBlock>
+            </TabItem.Header>
+            <TabItem.Content>
+                <DockPanel LastChildFill="True">
+                    <StackPanel Orientation="Vertical" DockPanel.Dock="Top">
+                        <Label Content="Input file (valid .NET Assembly &quot;.exe&quot; or &quot;.dll&quot; file):" HorizontalAlignment="Left" Margin="10,0,0,0" VerticalAlignment="Top"/>
+                        <TextBox Height="23" TextWrapping="NoWrap" Margin="10,0,10,0" x:Name="InputTextBox" Drop="TextBox_Drop" AllowDrop="True" PreviewDragOver="TextBox_PreviewDragOver" />
+                        <Label Content="Output file (file with replaced strings will be written here):" HorizontalAlignment="Left" Margin="10,0,0,0" VerticalAlignment="Top"/>
+                        <TextBox Height="23" TextWrapping="NoWrap" Margin="10,0,10,0" x:Name="OutputTextBox" Drop="TextBox_Drop" AllowDrop="True" PreviewDragOver="TextBox_PreviewDragOver"  />
+                        <Label Content="Strings file (&quot;.csv&quot; file to/from strings will be exported/loaded):" HorizontalAlignment="Left" Margin="10,0,0,0" VerticalAlignment="Top"/>
+                        <TextBox Height="23" TextWrapping="NoWrap" Margin="10,0,10,0" x:Name="StringsFileTextBox" Drop="TextBox_Drop" AllowDrop="True" PreviewDragOver="TextBox_PreviewDragOver" />
+                        <DockPanel Margin="10">
+                            <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right" >
+                                <Button Content="Cancel" Margin="0,0,10,0" Padding="5,2" x:Name="CancelButtton" Click="CancelButtton_Click" IsCancel="True" IsEnabled="False"/>
+                                <Button Content="Extract strings" Margin="0,0,10,0" Padding="5,2" x:Name="ExtractButtton" Click="ExtractButtton_Click"/>
+                                <Button Content="Repack application" Padding="5,2" x:Name="RepackButtton" Click="RepackButtton_Click" />
+                            </StackPanel>
+                            <!--<Button DockPanel.Dock="Left" Content="About" Margin="0,0,10,0" Padding="5,2" x:Name="AboutButton" Click="CancelButtton_Click" IsCancel="True" IsEnabled="False"/>-->
+                            <ProgressBar Margin="0,0,10,0" x:Name="ProgressBar"/>
+                        </DockPanel>
+                    </StackPanel>
+                    <TextBox  TextWrapping="NoWrap" Margin="10,0,10,10" x:Name="LogTextBox" IsUndoEnabled="False" IsReadOnly="True" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" />
+
+                </DockPanel>
+            </TabItem.Content>
+
+        </TabItem>
+        <TabItem x:Name="AboutTab" Padding="0" >
+            <TabItem.Header>
+                <TextBlock Padding="5,0" Margin="0">About</TextBlock>
+            </TabItem.Header>
+            <TabItem.Content>
+                <StackPanel Margin="5">
+                    <Label Content="DotNet String Repacker" FontWeight="Bold" FontSize="14" />
+                    <Label>
+                        <TextBlock TextWrapping="WrapWithOverflow">
+                                            This program allows extract and replace strings in .NET application.
+                        </TextBlock>
+                    </Label>
+
+                    <StackPanel Orientation="Horizontal">
+                        <Label Content="Version:" FontWeight="Bold" />
+                        <Label x:Name="VersionLabel" Content=""/>
+                    </StackPanel>
+
+                    <Label x:Name="ProjectWebsiteLabel">
+                        <TextBlock  TextWrapping="WrapWithOverflow">  
+                                            <TextBlock FontWeight="Bold">Project website: </TextBlock>
+                            <Hyperlink NavigateUri="https://github.com/VoronFX/DotNet-String-Repacker" >https://github.com/VoronFX/DotNet-String-Repacker</Hyperlink>  
+                                        </TextBlock>
+                    </Label>
+                    
+                    <!--<Label x:Name="CopyrightLabel">
+                        <TextBlock  TextWrapping="WrapWithOverflow">  
+                                            <TextBlock FontWeight="Bold">Copyright: </TextBlock>
+                                            @ 2015 Voron.exe<LineBreak/> All rights reserved.   
+                                        </TextBlock>
+                    </Label>-->
+
+                    <GroupBox Margin="5">
+                        <GroupBox.Header>
+                            <TextBlock FontWeight="Bold" FontSize="14">Author</TextBlock>
+                        </GroupBox.Header>
+                        <StackPanel Orientation="Horizontal">
+                            <Image x:Name="AuthorGravatar" Margin="10,5,10,5" Loaded="AuthorGravatar_Loaded" />
+                            <StackPanel>
+                                <Label Content="Igor Voronin" FontWeight="Bold" />
+
+                                <StackPanel Orientation="Horizontal">
+                                    <Label Content="GitHub:" FontWeight="Bold" />
+                                    <Label>
+                                        <Hyperlink NavigateUri="https://github.com/VoronFX" >VoronFX</Hyperlink>
+                                    </Label>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <Label Content="Email:" FontWeight="Bold" />
+                                    <Label>
+                                        <Hyperlink NavigateUri="mailto:Voron.exe@gmail.com" >Voron.exe@gmail.com</Hyperlink>
+                                    </Label>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <Label Content="Skype:" FontWeight="Bold" />
+                                    <Label>
+                                        <Hyperlink NavigateUri="skype:Voron.exe?chat:Voron.exe">Voron.exe</Hyperlink>
+                                    </Label>
+                                </StackPanel>
+                            </StackPanel>
+                        </StackPanel>
+                    </GroupBox>
+                </StackPanel>
+            </TabItem.Content>
+        </TabItem>
+    </TabControl>
+
 </Window>
