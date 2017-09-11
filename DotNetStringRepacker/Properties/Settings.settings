@@ -11,11 +11,17 @@
     <Setting Name="StringsFile" Type="System.String" Scope="User">
       <Value Profile="(Default)" />
     </Setting>
-    <Setting Name="IldasmPath" Type="System.String" Scope="User">
-      <Value Profile="(Default)">il\ildasm.exe</Value>
+    <Setting Name="IldasmPath32" Type="System.String" Scope="User">
+      <Value Profile="(Default)">il\win-x86\ildasm.exe</Value>
     </Setting>
-    <Setting Name="IlasmPath" Type="System.String" Scope="User">
-      <Value Profile="(Default)">il\ilasm.exe</Value>
+    <Setting Name="IlasmPath32" Type="System.String" Scope="User">
+      <Value Profile="(Default)">il\win-x86\ilasm.exe</Value>
+    </Setting>
+    <Setting Name="IldasmPath64" Type="System.String" Scope="User">
+      <Value Profile="(Default)">il\win-x64\ildasm.exe</Value>
+    </Setting>
+    <Setting Name="IlasmPath64" Type="System.String" Scope="User">
+      <Value Profile="(Default)">il\win-x64\ilasm.exe</Value>
     </Setting>
   </Settings>
 </SettingsFile>

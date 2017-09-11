@@ -66,8 +66,6 @@ namespace DotNetStringRepacker
             //HasHeaderRecord = false,
             QuoteAllFields = true,
             Delimiter = ", ",
-            
-            
         };
 
         private sealed class StringOverride
@@ -185,7 +183,9 @@ namespace DotNetStringRepacker
 
                 cancellationToken.ThrowIfCancellationRequested();
                 Log("Recompiling application...");
-                RunProcess(Properties.Settings.Default.IlasmPath, $" /QUIET \"{DissasebledFile}\" /OUT=\"{OutputFile}\"",
+                RunProcess(Environment.Is64BitOperatingSystem ?
+                            Properties.Settings.Default.IlasmPath64 : Properties.Settings.Default.IlasmPath32
+                            , $" /QUIET \"{DissasebledFile}\" /OUT=\"{OutputFile}\"",
                         cancellationToken)
                     .Wait(cancellationToken);
 
@@ -272,8 +272,10 @@ namespace DotNetStringRepacker
                 Directory.CreateDirectory(TempFolder);
                 Cached = default(KeyValuePair<string, DateTime>);
                 Log($"Disassembling application...");
-
-                RunProcess(Properties.Settings.Default.IldasmPath, $"/UNICODE \"{InputFile}\" /OUT=\"{DissasebledFile}\"",
+                
+                RunProcess(Environment.Is64BitOperatingSystem ? 
+                    Properties.Settings.Default.IldasmPath64 : Properties.Settings.Default.IldasmPath32
+                    , $"/UNICODE \"{InputFile}\" /OUT=\"{DissasebledFile}\"",
                         cancellationToken)
                     .Wait(cancellationToken);
 
@@ -336,6 +338,7 @@ namespace DotNetStringRepacker
 
                 Log("Parsing strings...");
                 var text = File.ReadAllText(DissasebledFile, Encoding.Unicode);
+
                 text = RegExComments.Replace(text, "");
                 GC.Collect();
 

@@ -61,25 +61,49 @@ namespace DotNetStringRepacker.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("il\\ildasm.exe")]
-        public string IldasmPath {
+        [global::System.Configuration.DefaultSettingValueAttribute("il\\win-x86\\ildasm.exe")]
+        public string IldasmPath32 {
             get {
-                return ((string)(this["IldasmPath"]));
+                return ((string)(this["IldasmPath32"]));
             }
             set {
-                this["IldasmPath"] = value;
+                this["IldasmPath32"] = value;
             }
         }
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("il\\ilasm.exe")]
-        public string IlasmPath {
+        [global::System.Configuration.DefaultSettingValueAttribute("il\\win-x86\\ilasm.exe")]
+        public string IlasmPath32 {
             get {
-                return ((string)(this["IlasmPath"]));
+                return ((string)(this["IlasmPath32"]));
             }
             set {
-                this["IlasmPath"] = value;
+                this["IlasmPath32"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("il\\win-x64\\ildasm.exe")]
+        public string IldasmPath64 {
+            get {
+                return ((string)(this["IldasmPath64"]));
+            }
+            set {
+                this["IldasmPath64"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("il\\win-x64\\ilasm.exe")]
+        public string IlasmPath64 {
+            get {
+                return ((string)(this["IlasmPath64"]));
+            }
+            set {
+                this["IlasmPath64"] = value;
             }
         }
     }
