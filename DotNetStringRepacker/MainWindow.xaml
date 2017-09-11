@@ -23,8 +23,8 @@
                         <DockPanel Margin="10">
                             <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right" >
                                 <Button Content="Cancel" Margin="0,0,10,0" Padding="5,2" x:Name="CancelButtton" Click="CancelButtton_Click" IsCancel="True" IsEnabled="False"/>
-                                <Button Content="Extract strings" Margin="0,0,10,0" Padding="5,2" x:Name="ExtractButtton" Click="ExtractButtton_Click"/>
-                                <Button Content="Repack application" Padding="5,2" x:Name="RepackButtton" Click="RepackButtton_Click" />
+                                <Button Content="Extract strings" Margin="0,0,10,0" Padding="5,2" x:Name="ExtractButtton" Click="ExtractButtton_Click" ToolTip="From Input file generates Strings file in csv format that contains all strings found in application."/>
+                                <Button Content="Repack application" Padding="5,2" x:Name="RepackButtton" Click="RepackButtton_Click" ToolTip="Takes Input file, replaces all strings defined in Strings file and saves to Output file." />
                             </StackPanel>
                             <!--<Button DockPanel.Dock="Left" Content="About" Margin="0,0,10,0" Padding="5,2" x:Name="AboutButton" Click="CancelButtton_Click" IsCancel="True" IsEnabled="False"/>-->
                             <ProgressBar Margin="0,0,10,0" x:Name="ProgressBar"/>

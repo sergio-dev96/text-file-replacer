@@ -53,6 +53,13 @@ namespace DotNetStringRepacker
         private KeyValuePair<string, DateTime> Cached { get; set; }
         private string TempFolder { get; set; }
         private ConcurrentQueue<string> LogBuffer { get; } = new ConcurrentQueue<string>();
+        
+        private Regex RegExComments => new Regex(@"\s\s\s//\s.*", RegexOptions.Compiled);
+        private Regex RegExByteArray => new Regex(@"(?s)(ldstr\s+?bytearray\s+?\()(.*?)(\))", RegexOptions.Compiled);
+        private Regex RegExEscapedN { get; } = new Regex(@"\\n", RegexOptions.Compiled);
+        private Regex RegExNewLine { get; } = new Regex("\r?\n", RegexOptions.Compiled);
+        private Regex RegExEscapedNewLine { get; } = new Regex(@"(?<!\\)\\n", RegexOptions.Compiled);
+        private Regex RegExWhiespace { get; } = new Regex(@"\s+", RegexOptions.Compiled);
 
         private CsvConfiguration CsvConfiguration { get; } = new CsvConfiguration
         {
@@ -151,9 +158,11 @@ namespace DotNetStringRepacker
                     Log("Reading disassembled file...");
                     var text = File.ReadAllText(SourceFile, Encoding.Unicode);
                     Log("Replacing strings...");
-                    text = Regex.Replace(text, @"\s\s\s//\s.*", "");
+                    text = RegExComments.Replace(text, "");
+                    GC.Collect();
+
                     int replaced = 0;
-                    text = Regex.Replace(text, @"(?s)(ldstr\s+?bytearray\s+?\()(.*?)(\))", match =>
+                    text = RegExByteArray.Replace(text, match =>
                     {
                         cancellationToken.ThrowIfCancellationRequested();
 
@@ -166,11 +175,14 @@ namespace DotNetStringRepacker
                         }
                         return match.Value;
                     });
+                    GC.Collect();
                     Log($"Replaced {replaced} strings");
 
                     Log("Saving file...");
                     File.WriteAllText(DissasebledFile, text, Encoding.Unicode);
                 }
+                GC.Collect();
+
                 cancellationToken.ThrowIfCancellationRequested();
                 Log("Recompiling application...");
                 RunProcess(Properties.Settings.Default.IlasmPath, $" /QUIET \"{DissasebledFile}\" /OUT=\"{OutputFile}\"",
@@ -185,7 +197,7 @@ namespace DotNetStringRepacker
         private string InputFile => Dispatcher.Invoke(() => InputTextBox.Text);
         private string OutputFile => Dispatcher.Invoke(() => OutputTextBox.Text);
         private string StringsFile => Dispatcher.Invoke(() => StringsFileTextBox.Text);
-        private string DissasebledFile => Path.Combine(TempFolder, "app.il");
+        private string DissasebledFile =>Path.Combine(TempFolder, "app.il");
         private string SourceFile => Path.Combine(TempFolder, "app.source.il");
 
         private async Task RunProcess(string path, string arguments, CancellationToken cancellationToken)
@@ -302,17 +314,17 @@ namespace DotNetStringRepacker
 
         private string ExtractString(Match match)
         {
-            var hex = Regex.Replace(match.Groups[2].Value, @"\s+", "");
+            var hex = RegExWhiespace.Replace(match.Groups[2].Value, "");
             var bytes = StringToByteArrayFastest(hex);
             var text = Encoding.Unicode.GetString(bytes);
-            text = Regex.Replace(text, @"\\n", @"\\n");
-            text = Regex.Replace(text, "\r?\n", @"\n");
+            text = RegExEscapedN.Replace(text, @"\\n");
+            text = RegExNewLine.Replace(text, @"\n");
             return text;
         }
 
         private string PackString(Match match, string newString)
         {
-            var text = BitConverter.ToString(Encoding.Unicode.GetBytes(Regex.Replace(newString,@"(?<!\\)\\n", "\r\n")));
+            var text = BitConverter.ToString(Encoding.Unicode.GetBytes(RegExEscapedNewLine.Replace(newString, "\r\n")));
             return match.Groups[1].Value + text.Replace("-", " ")+ match.Groups[3].Value;
         }
 
@@ -324,12 +336,14 @@ namespace DotNetStringRepacker
 
                 Log("Parsing strings...");
                 var text = File.ReadAllText(DissasebledFile, Encoding.Unicode);
-                text = Regex.Replace(text, @"\s\s\s//\s.*", "");
+                text = RegExComments.Replace(text, "");
+                GC.Collect();
 
-                var strings = Regex.Matches(text, @"(?s)(ldstr\s+?bytearray\s+?\()(.*?)(\))")
+                var strings = RegExByteArray.Matches(text)
                 .Cast<Match>()
                 .Select(ExtractString)
                 .ToImmutableHashSet();
+                GC.Collect();
 
                 Log("Saving to file...");
                 using (var stream = new FileStream(StringsFile, FileMode.Create))
@@ -363,6 +377,7 @@ namespace DotNetStringRepacker
                     {
                         task.SetException(e);
                     }
+                    GC.Collect();
                 })
             {
                 IsBackground = true,
