@@ -30,8 +30,7 @@ namespace DotNetStringRepacker
         public MainWindow()
         {
             InitializeComponent();
-            MainControls = new Control[] { InputTextBox, OutputTextBox, StringsFileTextBox, ExtractButtton, RepackButtton };
-            VersionLabel.Content = Assembly.GetExecutingAssembly().GetName().Version.ToString();
+            MainControls = new Control[] { InputTextBox, OutputTextBox, StringsFileTextBox, RepackButtton };
             TempFolder = Path.Combine(Path.GetTempPath(), nameof(DotNetStringRepacker) + Guid.NewGuid());
             InputTextBox.Text = Properties.Settings.Default.InputFile;
             OutputTextBox.Text = Properties.Settings.Default.OutputFile;
@@ -55,7 +54,10 @@ namespace DotNetStringRepacker
         private ConcurrentQueue<string> LogBuffer { get; } = new ConcurrentQueue<string>();
         
         private Regex RegExComments => new Regex(@"\s\s\s//\s.*", RegexOptions.Compiled);
-        private Regex RegExByteArray => new Regex(@"(?s)(ldstr\s+?bytearray\s+?\()(.*?)(\))", RegexOptions.Compiled);
+        //private Regex RegExByteArray => new Regex(@"(\[?[A-Za-z0-9_]+\]?)\.?(\[?[A-Za-z0-9_]+\]?)", RegexOptions.IgnoreCase);
+
+        private Regex RegExByteArray => new Regex(@"(\[?[A-Za-z0-9_]{5,}\]?)\.?(\[?[A-Za-z0-9_]+\]?)", RegexOptions.IgnoreCase);
+        private Regex RegExSecondFilter => new Regex(@"\bo?(SR|sr)([A-Za-z0-9_]+)\b", RegexOptions.IgnoreCase);
         private Regex RegExEscapedN { get; } = new Regex(@"\\n", RegexOptions.Compiled);
         private Regex RegExNewLine { get; } = new Regex("\r?\n", RegexOptions.Compiled);
         private Regex RegExEscapedNewLine { get; } = new Regex(@"(?<!\\)\\n", RegexOptions.Compiled);
@@ -64,8 +66,9 @@ namespace DotNetStringRepacker
         private CsvConfiguration CsvConfiguration { get; } = new CsvConfiguration
         {
             //HasHeaderRecord = false,
-            QuoteAllFields = true,
-            Delimiter = ", ",
+            QuoteAllFields = false,
+            Delimiter = ";",
+            
         };
 
         private sealed class StringOverride
@@ -76,7 +79,6 @@ namespace DotNetStringRepacker
 
         private void AuthorGravatar_Loaded(object sender, RoutedEventArgs e)
         {
-            AuthorGravatar.Source = new BitmapImage(new Uri(Gravimage.Gravimage.Get("Voron.exe@gmail.com")));
         }
 
         private void LogFlusher()
@@ -138,12 +140,12 @@ namespace DotNetStringRepacker
         {
             await BlockUi(async (cancellationToken) => await InThread(() =>
             {
-                EnsureDissassembled(cancellationToken);
+                //EnsureDissassembled(cancellationToken);
 
                 cancellationToken.ThrowIfCancellationRequested();
-                Log("Loading replacement strings...");
+                Log("Cargando texto de reemplazo...");
                 using (var stream = new FileStream(StringsFile, FileMode.Open))
-                using (var reader = new StreamReader(stream, Encoding.Unicode))
+                using (var reader = new StreamReader(stream, Encoding.UTF8))
                 using (var csvReader = new CsvHelper.CsvReader(reader, CsvConfiguration))
                 {
                     var overrides = csvReader
@@ -151,11 +153,10 @@ namespace DotNetStringRepacker
                     .Where(x => x.TargetString != x.ReplacementString)
                     .ToImmutableDictionary(x => x.TargetString, x => x.ReplacementString);
 
-                    Log($"Loaded {overrides.Count} string overrides");
+                    Log($"{overrides.Count} textos por sobreescribir.");
 
-                    Log("Reading disassembled file...");
-                    var text = File.ReadAllText(SourceFile, Encoding.Unicode);
-                    Log("Replacing strings...");
+                    var text = File.ReadAllText(InputFile, Encoding.UTF8);
+                    Log("Reemplazando textos...");
                     text = RegExComments.Replace(text, "");
                     GC.Collect();
 
@@ -165,31 +166,79 @@ namespace DotNetStringRepacker
                         cancellationToken.ThrowIfCancellationRequested();
 
                         var currentString = ExtractString(match);
+                        
                         if (overrides.TryGetValue(currentString, out var replacement))
                         {
-                            Log($"Replacing \"{currentString}\" with \"{replacement}\"");
+                            Log($"Reemplazando \"{currentString}\" con \"{replacement}\"");
                             replaced++;
-                            return PackString(match, replacement);
+                            return replacement;
+                        }
+                        else if (overrides.TryGetValue(currentString.Replace("[", "").Replace("]", ""), out var replacementII))
+                        {
+                            replacementII = string.Join(".",replacementII.Split('.').Select(txt => $"[{txt}]"));
+
+                            Log($"Reemplazando \"{currentString}\" con \"{replacementII}\"");
+                            replaced++;
+                            return replacementII;
                         }
                         return match.Value;
                     });
-                    GC.Collect();
-                    Log($"Replaced {replaced} strings");
 
-                    Log("Saving file...");
-                    File.WriteAllText(DissasebledFile, text, Encoding.Unicode);
+                    text = RegExSecondFilter.Replace(text, match =>
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+
+                        var currentString = ExtractString(match);
+
+                        if (overrides.TryGetValue(currentString, out var replacement))
+                        {
+                            Log($"Reemplazando \"{currentString}\" con \"{replacement}\"");
+                            replaced++;
+                            return replacement;
+                        }
+                        else if (currentString.StartsWith("o"))
+                        {
+                            var withoutSchema = overrides.FirstOrDefault(p => p.Key.Contains(currentString.Substring(1,currentString.Length-1)));
+                            if(withoutSchema.Key == null)
+                            {
+                                return match.Value;
+                            }
+
+                            Log($"Reemplazando \"{currentString}\" con \"o{withoutSchema.Value.Split('.')[1]}\"");
+                            replaced++;
+                            return $"o{withoutSchema.Value.Split('.')[1]}";
+                        }
+                        else
+                        {
+                            var withoutSchema = overrides.FirstOrDefault(p => p.Key.Contains(currentString.Substring(1, currentString.Length - 1)));
+                            if (withoutSchema.Key == null)
+                            {
+                                return match.Value;
+                            }
+
+                            Log($"Reemplazando \"{currentString}\" con \"{withoutSchema.Value.Split('.')[1]}\"");
+                            replaced++;
+                            return $"{withoutSchema.Value.Split('.')[1]}";
+                        }
+                    });
+
+                    GC.Collect();
+                    Log($"{replaced} textos reemplazados");
+
+                    Log("Guardando archivo...");
+                    File.WriteAllText(OutputFile, text, Encoding.UTF8);
                 }
                 GC.Collect();
 
                 cancellationToken.ThrowIfCancellationRequested();
-                Log("Recompiling application...");
-                RunProcess(Environment.Is64BitOperatingSystem ?
-                            Properties.Settings.Default.IlasmPath64 : Properties.Settings.Default.IlasmPath32
-                            , $" /QUIET \"{DissasebledFile}\" /OUT=\"{OutputFile}\"",
-                        cancellationToken)
-                    .Wait(cancellationToken);
+                //Log("Recompiling application...");
+                //RunProcess(Environment.Is64BitOperatingSystem ?
+                //            Properties.Settings.Default.IlasmPath64 : Properties.Settings.Default.IlasmPath32
+                //            , $" /QUIET \"{DissasebledFile}\" /OUT=\"{OutputFile}\"",
+                //        cancellationToken)
+                //    .Wait(cancellationToken);
 
-                Log($"Application successfully recompiled to {OutputFile}");
+                //Log($"Application successfully recompiled to {OutputFile}");
 
             }, cancellationToken));
         }
@@ -275,7 +324,7 @@ namespace DotNetStringRepacker
                 
                 RunProcess(Environment.Is64BitOperatingSystem ? 
                     Properties.Settings.Default.IldasmPath64 : Properties.Settings.Default.IldasmPath32
-                    , $"/UNICODE \"{InputFile}\" /OUT=\"{DissasebledFile}\"",
+                    , $"/UTF8 \"{InputFile}\" /OUT=\"{DissasebledFile}\"",
                         cancellationToken)
                     .Wait(cancellationToken);
 
@@ -316,17 +365,17 @@ namespace DotNetStringRepacker
 
         private string ExtractString(Match match)
         {
-            var hex = RegExWhiespace.Replace(match.Groups[2].Value, "");
-            var bytes = StringToByteArrayFastest(hex);
-            var text = Encoding.Unicode.GetString(bytes);
-            text = RegExEscapedN.Replace(text, @"\\n");
-            text = RegExNewLine.Replace(text, @"\n");
-            return text;
+            //var hex = RegExWhiespace.Replace(match.Groups[2].Value, "");
+            //var bytes = StringToByteArrayFastest(hex);
+            //var text = Encoding.UTF8.GetString(bytes);
+            //text = RegExEscapedN.Replace(text, @"\\n");
+            //text = RegExNewLine.Replace(text, @"\n");
+            return match.Value;
         }
 
         private string PackString(Match match, string newString)
         {
-            var text = BitConverter.ToString(Encoding.Unicode.GetBytes(RegExEscapedNewLine.Replace(newString, "\r\n")));
+            var text = BitConverter.ToString(Encoding.UTF8.GetBytes(RegExEscapedNewLine.Replace(newString, "\r\n")));
             return match.Groups[1].Value + text.Replace("-", " ")+ match.Groups[3].Value;
         }
 
@@ -337,7 +386,7 @@ namespace DotNetStringRepacker
                 EnsureDissassembled(cancellationToken);
 
                 Log("Parsing strings...");
-                var text = File.ReadAllText(DissasebledFile, Encoding.Unicode);
+                var text = File.ReadAllText(DissasebledFile, Encoding.UTF8);
 
                 text = RegExComments.Replace(text, "");
                 GC.Collect();
@@ -350,7 +399,7 @@ namespace DotNetStringRepacker
 
                 Log("Saving to file...");
                 using (var stream = new FileStream(StringsFile, FileMode.Create))
-                using (var writer = new StreamWriter(stream, Encoding.Unicode))
+                using (var writer = new StreamWriter(stream, Encoding.UTF8))
                 using (var csvWriter = new CsvHelper.CsvWriter(writer, CsvConfiguration))
                 {
                     csvWriter.WriteRecords(strings.Select(x => new StringOverride { TargetString = x, ReplacementString = x }));
@@ -420,6 +469,78 @@ namespace DotNetStringRepacker
             Properties.Settings.Default.OutputFile = OutputTextBox.Text;
             Properties.Settings.Default.StringsFile = StringsFileTextBox.Text;
             Properties.Settings.Default.Save();
+        }
+
+        private void InputTextBox_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            // Create OpenFileDialog 
+            Microsoft.Win32.OpenFileDialog dlg = new Microsoft.Win32.OpenFileDialog();
+
+
+
+            // Set filter for file extension and default file extension 
+            dlg.DefaultExt = ".cs";
+            dlg.Filter = "Text|*.cs|All|*.*";
+
+
+            // Display OpenFileDialog by calling ShowDialog method 
+            Nullable<bool> result = dlg.ShowDialog();
+
+
+            // Get the selected file name and display in a TextBox 
+            if (result == true)
+            {
+                // Open document 
+                string filename = dlg.FileName;
+                InputTextBox.Text = filename;
+            }
+        }
+
+        private void StringsFileTextBox_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            // Create OpenFileDialog 
+            Microsoft.Win32.OpenFileDialog dlg = new Microsoft.Win32.OpenFileDialog();
+
+
+
+            // Set filter for file extension and default file extension 
+            dlg.DefaultExt = ".csv";
+            dlg.Filter = "CSV files (*.csv)|*csv";
+
+
+            // Display OpenFileDialog by calling ShowDialog method 
+            Nullable<bool> result = dlg.ShowDialog();
+
+
+            // Get the selected file name and display in a TextBox 
+            if (result == true)
+            {
+                // Open document 
+                string filename = dlg.FileName;
+                StringsFileTextBox.Text = filename;
+            }
+        }
+
+        private void OutputTextBox_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            // Create OpenFileDialog 
+            Microsoft.Win32.SaveFileDialog dlg = new Microsoft.Win32.SaveFileDialog();
+
+            // Set filter for file extension and default file extension 
+            dlg.DefaultExt = ".cs";
+            dlg.Filter = "All|*.*";
+
+            // Display OpenFileDialog by calling ShowDialog method 
+            Nullable<bool> result = dlg.ShowDialog();
+
+
+            // Get the selected file name and display in a TextBox 
+            if (result == true)
+            {
+                // Open document 
+                string filename = dlg.FileName;
+                OutputTextBox.Text = filename;
+            }
         }
     }
 }
