@@ -1,0 +1,87 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+    <link rel="stylesheet"
+          data-name="vs/editor/editor.main"
+          href="./min/vs/editor/editor.main.css" />
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+        }
+
+        #container {
+            height: 100%;
+        }
+
+        select{
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <label>Lenguaje</label>
+    <select onchange="setLanguage(this);">
+        <option value="csharp">C#</option>
+        <option value="sql">SQL</option>
+    </select>
+    <div id="container"></div>
+    <script src="./min/vs/loader.js"></script>
+    <script>
+
+        require.config({ paths: { 'vs': './min/vs' } });
+    </script>
+    <script src="./min/vs/editor/editor.main.nls.js"></script>
+    <script src="./min/vs/editor/editor.main.js"></script>
+    <script>
+        var originalText = "";
+        var modifiedText = "";
+        var originalModel;
+        var modifiedModel;
+
+        window.onresize = function () {
+            originalModel.layout();
+            modifiedModel.layout();
+        };
+
+        function initDiff() {
+            originalModel = monaco.editor.createModel(
+                originalText, 'csharp'
+            );
+
+            originalModel.updateOptions({ readOnly: false });
+
+            modifiedModel = monaco.editor.createModel(
+                modifiedText, 'csharp'
+            );
+
+            var diffEditor = monaco.editor.createDiffEditor(document.getElementById('container'), {
+                language: 'csharp',
+                originalEditable: true,
+                readOnly: true,
+                theme: 'vs-dark'
+            });
+
+            diffEditor.setModel({
+                original: originalModel,
+                modified: modifiedModel,
+            });
+        }
+        initDiff();
+
+        function sendText() {
+            window.chrome.webview.postMessage(originalModel.getValue());
+        }
+        function setResult(newValue) {
+            modifiedText = newValue;
+            modifiedModel.setValue(newValue);
+        }
+
+        function setLanguage(val) {
+            originalModel.setLanguage(val.value);
+            modifiedModel.setLanguage(val.value);
+        }
+    </script>
+</body>
+</html> 

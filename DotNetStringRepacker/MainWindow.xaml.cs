@@ -20,6 +20,8 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using CsvHelper.Configuration;
 
+using Microsoft.Web.WebView2.Wpf;
+
 namespace DotNetStringRepacker
 {
     /// <summary>
@@ -27,6 +29,7 @@ namespace DotNetStringRepacker
     /// </summary>
     public partial class MainWindow : Window
     {
+        string textFromView = "";
         public MainWindow()
         {
             InitializeComponent();
@@ -44,7 +47,45 @@ namespace DotNetStringRepacker
                 }
             });
             LogFlusher();
+
+            this.webView21.Source =
+                new Uri(System.IO.Path.Combine(
+            System.AppDomain.CurrentDomain.BaseDirectory,
+            @"Monaco\index.html"));
+
+            webView21.WebMessageReceived += webView21_WebMessageReceived;
+
+
+            //InputText.AddHandler(ScrollViewer.ScrollChangedEvent, new RoutedEventHandler(InputText_ScrollChanged));
+            //OutputText.AddHandler(ScrollViewer.ScrollChangedEvent, new RoutedEventHandler(OutputText_ScrollChanged));
         }
+
+        private void webView21_WebMessageReceived(object sender, Microsoft.Web.WebView2.Core.CoreWebView2WebMessageReceivedEventArgs args)
+        {
+            textFromView = args.TryGetWebMessageAsString();
+        }
+
+        //private void InputText_ScrollChanged(object sender, RoutedEventArgs e)
+        //{
+        //    // Obtener la posición de desplazamiento vertical del textBox1.ScrollViewer
+        //    ScrollViewer scrollViewer = (ScrollViewer)e.OriginalSource;
+        //    double verticalOffset = scrollViewer.VerticalOffset;
+
+        //    // Sincronizar la posición de desplazamiento vertical en textBox2.ScrollViewer
+        //    ScrollViewer sv2 = (ScrollViewer)OutputText.Template.FindName("PART_ContentHost", OutputText);
+        //    sv2.ScrollToVerticalOffset(verticalOffset);
+        //}
+
+        //private void OutputText_ScrollChanged(object sender, RoutedEventArgs e)
+        //{
+        //    // Obtener la posición de desplazamiento vertical del textBox1.ScrollViewer
+        //    ScrollViewer scrollViewer = (ScrollViewer)e.OriginalSource;
+        //    double verticalOffset = scrollViewer.VerticalOffset;
+
+        //    // Sincronizar la posición de desplazamiento vertical en textBox2.ScrollViewer
+        //    ScrollViewer sv2 = (ScrollViewer)InputText.Template.FindName("PART_ContentHost", InputText);
+        //    sv2.ScrollToVerticalOffset(verticalOffset);
+        //}
 
         private Control[] MainControls { get; }
         private CancellationTokenSource CancellationTokenSource { get; set; }
@@ -136,8 +177,25 @@ namespace DotNetStringRepacker
                 control.IsEnabled = true;
         }
 
+        async Task<string> waitForText()
+        {
+            while (textFromView == "");
+            return textFromView;
+        }
+
         private async void RepackButtton_Click(object sender, RoutedEventArgs e)
         {
+            textFromView = "";
+            string text = "";
+            if (rdo_archivo.IsChecked ?? false)
+                text = File.ReadAllText(InputFile, Encoding.UTF8);
+            else
+            {
+                await webView21.CoreWebView2.ExecuteScriptAsync($"sendText();");
+                text = await waitForText();
+            }
+
+
             await BlockUi(async (cancellationToken) => await InThread(() =>
             {
                 //EnsureDissassembled(cancellationToken);
@@ -154,10 +212,8 @@ namespace DotNetStringRepacker
                     .ToImmutableDictionary(x => x.TargetString, x => x.ReplacementString);
 
                     Log($"{overrides.Count} textos por sobreescribir.");
-
-                    var text = File.ReadAllText(InputFile, Encoding.UTF8);
                     Log("Reemplazando textos...");
-                    text = RegExComments.Replace(text, "");
+                    //text = RegExComments.Replace(text, "");
                     GC.Collect();
 
                     int replaced = 0;
@@ -166,7 +222,7 @@ namespace DotNetStringRepacker
                         cancellationToken.ThrowIfCancellationRequested();
 
                         var currentString = ExtractString(match);
-                        
+
                         if (overrides.TryGetValue(currentString, out var replacement))
                         {
                             Log($"Reemplazando \"{currentString}\" con \"{replacement}\"");
@@ -175,7 +231,7 @@ namespace DotNetStringRepacker
                         }
                         else if (overrides.TryGetValue(currentString.Replace("[", "").Replace("]", ""), out var replacementII))
                         {
-                            replacementII = string.Join(".",replacementII.Split('.').Select(txt => $"[{txt}]"));
+                            replacementII = string.Join(".", replacementII.Split('.').Select(txt => $"[{txt}]"));
 
                             Log($"Reemplazando \"{currentString}\" con \"{replacementII}\"");
                             replaced++;
@@ -198,13 +254,15 @@ namespace DotNetStringRepacker
                         }
                         else if (currentString.StartsWith("o"))
                         {
-                            var withoutSchema = overrides.FirstOrDefault(p => p.Key.Contains(currentString.Substring(1,currentString.Length-1)));
-                            if(withoutSchema.Key == null)
+                            var withoutSchema = overrides.FirstOrDefault(p => p.Key.Contains(currentString.Substring(1, currentString.Length - 1)));
+                            if (withoutSchema.Key == null)
                             {
                                 return match.Value;
                             }
-
-                            Log($"Reemplazando \"{currentString}\" con \"o{withoutSchema.Value.Split('.')[1]}\"");
+                            if(withoutSchema.Value.Contains("."))
+                                Log($"Reemplazando \"{currentString}\" con \"o{withoutSchema.Value.Split('.')[1]}\"");
+                            else
+                                return match.Value;
                             replaced++;
                             return $"o{withoutSchema.Value.Split('.')[1]}";
                         }
@@ -225,8 +283,6 @@ namespace DotNetStringRepacker
                     GC.Collect();
                     Log($"{replaced} textos reemplazados");
 
-                    Log("Guardando archivo...");
-                    File.WriteAllText(OutputFile, text, Encoding.UTF8);
                 }
                 GC.Collect();
 
@@ -241,6 +297,14 @@ namespace DotNetStringRepacker
                 //Log($"Application successfully recompiled to {OutputFile}");
 
             }, cancellationToken));
+
+            if (rdo_archivo.IsChecked ?? false)
+                File.WriteAllText(OutputFile, text, Encoding.UTF8);
+            else
+            {
+                await webView21.CoreWebView2.ExecuteScriptAsync($"setResult(`{text}`);");
+            }
+                
         }
 
         private string InputFile => Dispatcher.Invoke(() => InputTextBox.Text);

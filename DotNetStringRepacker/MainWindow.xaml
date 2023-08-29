@@ -4,24 +4,42 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:DotNetStringRepacker"
+        xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
         mc:Ignorable="d"
-        Title="Text Replacer" Height="500" Width="700" MinHeight="350" MinWidth="500" Closed="Window_Closed">
+        Title="Text Replacer" Height="790.222" Width="1401.733" MinHeight="350" MinWidth="500" Closed="Window_Closed" WindowStartupLocation="CenterScreen" WindowState="Maximized">
+
+
+    <!--<Window.Resources>
+        <Style x:Key="CodeEditorStyle" TargetType="{x:Type TextBox}">
+            <Setter Property="Background" Value="Black"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontFamily" Value="Consolas"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="Gray"/>
+            <Setter Property="Padding" Value="5"/>
+        </Style>
+    </Window.Resources>-->
+
     <TabControl>
         <TabItem x:Name="MainTab" Padding="0" >
             <TabItem.Header>
                 <TextBlock Padding="5,0" Margin="0">Reemplazar texto</TextBlock>
+
             </TabItem.Header>
             <TabItem.Content>
                 <DockPanel LastChildFill="True">
-                    <StackPanel Orientation="Vertical" DockPanel.Dock="Top">
-                        <Label Content="Archivo de origen (.cs, txt, etc):" HorizontalAlignment="Left" Margin="10,0,0,0" VerticalAlignment="Top"/>
-                        <TextBox Height="23" TextWrapping="NoWrap" Margin="10,0,10,0" x:Name="InputTextBox" Drop="TextBox_Drop" AllowDrop="True" PreviewDragOver="TextBox_PreviewDragOver" MouseDoubleClick="InputTextBox_MouseDoubleClick" />
-                        <Label Content="Archivo de salida:" HorizontalAlignment="Left" Margin="10,0,0,0" VerticalAlignment="Top"/>
-                        <TextBox Height="23" TextWrapping="NoWrap" Margin="10,0,10,0" x:Name="OutputTextBox" Drop="TextBox_Drop" AllowDrop="True" PreviewDragOver="TextBox_PreviewDragOver" MouseDoubleClick="OutputTextBox_MouseDoubleClick"  />
+                    <StackPanel Orientation="Vertical" DockPanel.Dock="Top" Height="195" Margin="0,0,0.4,0">
                         <Label Content="Archivo con los textos a reemplazar y de reemplazo (solo .csv):" HorizontalAlignment="Left" Margin="10,0,0,0" VerticalAlignment="Top"/>
                         <TextBox Height="23" TextWrapping="NoWrap" Margin="10,0,10,0" x:Name="StringsFileTextBox" Drop="TextBox_Drop" AllowDrop="True" PreviewDragOver="TextBox_PreviewDragOver" MouseDoubleClick="StringsFileTextBox_MouseDoubleClick" />
+                        <Label Content="Archivo de origen (.cs, txt, etc):" HorizontalAlignment="Left" Margin="10,0,0,0" VerticalAlignment="Top"/>
+                        <TextBox Height="23" TextWrapping="NoWrap" Margin="10,0,9.2,0" x:Name="InputTextBox" Drop="TextBox_Drop" AllowDrop="True" PreviewDragOver="TextBox_PreviewDragOver" MouseDoubleClick="InputTextBox_MouseDoubleClick" />
+                        <Label Content="Archivo de salida:" HorizontalAlignment="Left" Margin="10,0,0,0" VerticalAlignment="Top"/>
+                        <TextBox Height="23" TextWrapping="NoWrap" Margin="10,0,9.2,0" x:Name="OutputTextBox" Drop="TextBox_Drop" AllowDrop="True" PreviewDragOver="TextBox_PreviewDragOver" MouseDoubleClick="OutputTextBox_MouseDoubleClick"  />
                         <DockPanel Margin="10">
                             <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right" >
+                                <RadioButton Padding="5,2" Content="Solo Texto" IsChecked="True" GroupName="tipo" Name="rdo_texto"/>
+                                <RadioButton Padding="5,2" Content="Archivos" GroupName="tipo" x:Name="rdo_archivo"/>
                                 <Button Content="Cancelar" Margin="0,0,10,0" Padding="5,2" x:Name="CancelButtton" Click="CancelButtton_Click" IsCancel="True" IsEnabled="False"/>
                                 <Button Content="Iniciar proceso" Padding="5,2" x:Name="RepackButtton" Click="RepackButtton_Click" ToolTip="Takes Input file, replaces all strings defined in Strings file and saves to Output file." />
                             </StackPanel>
@@ -29,12 +47,29 @@
                             <ProgressBar Margin="0,0,10,0" x:Name="ProgressBar"/>
                         </DockPanel>
                     </StackPanel>
-                    <TextBox  TextWrapping="NoWrap" Margin="10,0,10,10" x:Name="LogTextBox" IsUndoEnabled="False" IsReadOnly="True" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" />
 
+
+
+                    <StackPanel Orientation="Horizontal" DockPanel.Dock="Top" HorizontalAlignment="Left" Margin="10,0,0,0" Width="1370" >
+                        <Label Content="Texto a procesar:" HorizontalAlignment="Left" Margin="5,0,0,0" VerticalAlignment="Top" Width="693"/>
+                        <Label Content="Texto procesado:" HorizontalAlignment="Left" Margin="5,0,0,0" VerticalAlignment="Top"/>
+
+                    </StackPanel>
+                    <Grid  DockPanel.Dock="Bottom" Margin="6,0,6.6,0"  >
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="100"/>
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <wv2:WebView2 x:Name="webView21"  Grid.Row="0" Grid.Column="0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
+                        <TextBox  TextWrapping="NoWrap" Grid.Row="1" Grid.Column="0" x:Name="LogTextBox" IsUndoEnabled="False" IsReadOnly="True" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" Margin="10,10,9.6,10"/>
+                    </Grid>
                 </DockPanel>
             </TabItem.Content>
-
         </TabItem>
+
     </TabControl>
 
 </Window>
