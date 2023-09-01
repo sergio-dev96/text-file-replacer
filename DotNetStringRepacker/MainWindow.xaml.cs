@@ -273,8 +273,10 @@ namespace DotNetStringRepacker
                             {
                                 return match.Value;
                             }
-
-                            Log($"Reemplazando \"{currentString}\" con \"{withoutSchema.Value.Split('.')[1]}\"");
+                            if (withoutSchema.Value.Contains("."))
+                                Log($"Reemplazando \"{currentString}\" con \"{withoutSchema.Value.Split('.')[1]}\"");
+                            else
+                                return match.Value;
                             replaced++;
                             return $"{withoutSchema.Value.Split('.')[1]}";
                         }
